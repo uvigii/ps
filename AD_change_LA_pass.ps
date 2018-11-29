@@ -1,0 +1,23 @@
+$ADC = Get-ADComputer -Filter {OperatingSystem -Like "Windows Server*"}
+$adminPassword = "your-new-strong-passwlord"
+$logfile = "log.txt"
+$ErrorActionPreference = 'stop'
+ForEach ($computerName in $ADC){
+      Try 
+       { 
+
+			
+			  $execstring = 	"WinNT://" + $computerName.Name +"/Administrator,User"			
+			  write-host -NoNewline $execstring
+            $adminUser = [ADSI] $execstring
+			  #"WinNT://" + $computerName.Name +"/Administrator,User"
+            $adminUser.SetPassword($adminPassword)
+			  write-host  -ForegroundColor Green ": OK"
+			
+
+        } 
+        Catch { 
+            "$(get-date) :: Server:$($computerName) :: $($error[0].exception)" | Out-File -append $logfile                                          
+			    write-host  -ForegroundColor Red ": Failed"
+        } 
+}
