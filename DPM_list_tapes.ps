@@ -1,0 +1,2 @@
+$AllLibraries = get-dpmlibrary -dpmservername "YOUR_DPM_SERVER_NAME"
+Get-Tape -DPMLibrary $AllLibraries|Where-Object {$_.IsOffsiteReady -eq "True"}|  ft LibraryName, Label, Barcode, IsOffsiteReady
