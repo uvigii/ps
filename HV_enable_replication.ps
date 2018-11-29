@@ -1,0 +1,53 @@
+ 
+$CustomProp = Get-SCCustomProperty -Name "EN_Replication"
+$VMHOSTs = "cl2n1,cl2n2,cl2n3,cl2n4"
+$ReplicaServerName = "cl1-rb.your_domain.com"
+
+
+ForEach ($VMHOST in ($VMHOSTs -split ",")  ) {
+
+    $ALL_VMs = Get-SCVirtualMachine -VMHost $VMHOST
+
+    ForEach ($VM in $ALL_VMs) {
+
+        $MFReplication  = $VM | Get-SCCustomPropertyValue -CustomProperty $CustomProp
+        Write-Host $VM.Name ": `t`t" -ForegroundColor Yellow -nonewline 
+        if ($MFReplication.Value -ge 1 ) 
+        {
+
+            Write-Host "`t" $MFReplication.Value -ForegroundColor Green -NoNewline
+            $Replication = Get-VMReplication -ComputerName $VMHOST -VMName $VM.Name –ReplicationMode Primary
+            if (!$Replication) {
+                if ($MFReplication.Value -eq 1) 
+                {
+                    $ReplicationFrequencySec = 30    
+                } elseif ($MFReplication.Value -eq 2) {
+                    $ReplicationFrequencySec = 300
+                } else {
+                    $ReplicationFrequencySec = 900
+                }
+                
+                
+                try {                
+                    Enable-VMReplication  $VM  -ComputerName  $VMHOST -ReplicaServerName $ReplicaServerName -ReplicaServerPort 80 -AuthenticationType Kerberos -ReplicationFrequencySec $ReplicationFrequencySec
+                    $Replication = Get-VMReplication -ComputerName $VMHOST -VMName $VM.Name –ReplicationMode Primary                    
+                    Start-VMInitialReplication -VMReplication $Replication
+                    Write-Host "`tEnabled" -ForegroundColor Green  
+                } 
+                catch {
+                      Write-Host "`tFailed" -ForegroundColor Red  
+                }
+
+                
+            } else {
+                Write-Host "`t"  $Replication.State            
+            }
+
+
+        } else {
+            Write-Host "`t0" -ForegroundColor Yellow 
+        }
+        
+    }
+    
+}
